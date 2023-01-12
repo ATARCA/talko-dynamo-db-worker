@@ -34,29 +34,32 @@ async function putItem(client, params) {
     try {
         return client.put(params).promise()
     } catch(err) {
+        console.log('Failed to update dynamodb', params)
         return err
     }
 }
 
+async function updateDB(data = [], client) {
+    data.forEach(async (token) => {
+        var putParams = {
+            TableName: TABLE_NAME,
+            Item: {
+                'contractAddress': token.contractAddress,
+                'tokenId': parseInt(token.tokenId),
+                'mintBlock': token.mintBlock,
+                'metadataAvailable': false,
+                'timestamp': moment().valueOf(),
+                'discord': false,
+                'twitter':false
+            },
+            ReturnValues: 'ALL_OLD'
+        }
+        //update item to dynamodb
+        const result = await putItem(client, putParams)
+    })
+}
+
 async function main() {
-    //attempt to retrieve records form dynamodb
-    //if no records, start querying new updates from the assigned env parameter blockgheight
-    //if records exist, find the latestest blockheight
-    //start querying from the latest blockheight
-
-    //get all tokens, original or shared since the 
-    //update dynamodb with token information
-    //tokenid, blockheight, metadata available, posted to twitter, posted to discord, timestamp
-
-    //query table, filter by contractAddress and find the latest tokenId or blockheight
-
-    //the highest blockheight should be a starting point to query the.graph to find newer tokens
-
-    //attempt to save information about new token mints to dynamodb
-
-    //return highest sort key item (tokenId) with given contractAddress
-
-    //starting mint_block, 
 
     const graphQLClient = createClient({
         url: API_URL,
@@ -81,41 +84,22 @@ async function main() {
         const latestBlock = results.Items[0]?.mintBlock
         console.log('latest tokenId is ', latestTokenId)
         console.log('latest block is ', latestBlock)
-        //try to fetch new items and update them to dynamoDb
         const data = await graphQLClient.query(projectSpecificTokens, {project: PROJECT, mintBlock: latestBlock, contractAddress: CONTRACT_ADDRESS}).toPromise()
-        console.log(data)
+        console.log('New tokens found: ', data?.data?.tokens.length)
+        if(data?.data?.tokens.length != 0) {
+            console.log('Attempting to update dynamodb')
+            updateDB(data?.data?.tokens, client)
+        }
     } else {
         console.log('Could not find any items from dynamo db database!')
-        //STARTING_BLOCK
+        console.log('Starting to search tokens from block: ', STARTING_BLOCK)
         const data = await graphQLClient.query(projectSpecificTokens, {project: PROJECT, mintBlock: STARTING_BLOCK, contractAddress: CONTRACT_ADDRESS}).toPromise()
-
-        //go through all tokens, append token data to dynamoDb
-        data?.data?.tokens.forEach(async (token) => {
-            //update token details to dynamodb
-            //console.log(token)
-            var putParams = {
-                TableName: TABLE_NAME,
-                Item: {
-                    'contractAddress': token.contractAddress,
-                    'tokenId': parseInt(token.tokenId),
-                    'mintBlock': token.mintBlock,
-                    'metadataAvailable': false,
-                    'timestamp': moment().valueOf(),
-                    'discord': false,
-                    'twitter':false
-                },
-                ReturnValues: 'ALL_OLD'
-            }
-            //update item to dynamodb
-            const result = await putItem(client, putParams)
-            //console.log(result)
-
-        })
-        
-        //console.log(data)
+        console.log('New tokens found: ', data?.data?.tokens.length)
+        if(data?.data?.tokens.length != 0) {
+            console.log('Attempting to update dynamodb')
+            updateDB(data?.data?.tokens, client)
+        }
     }
-    //console.log(results)
 }
-
 
 main()
