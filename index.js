@@ -6,7 +6,7 @@ const _ = require('lodash')
 const {projectSpecificTokens, getMetadataObject, updateParams, getItem, updateItem} = require('./helpers')
 const moment = require('moment')
 
-//exports.handler = async (event, context) => {
+exports.handler = async (event, context) => {
     const API_URL = process.env.API_URL
     const PROJECT = process.env.PROJECT
     const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS
@@ -140,5 +140,5 @@ const moment = require('moment')
         }
     }
 
-    main()
-//}
+    await main()
+}
