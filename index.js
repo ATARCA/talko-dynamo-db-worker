@@ -26,25 +26,13 @@ exports.handler = async (event, context) => {
     async function queryItems(client, params) {
         try {
             return client.query(params).promise()
-            //return data.Item
         } catch(err) {
             return err
         }
     }
 
-    async function putItem(client, params) {
-        try {
-            console.log('attempting to put item to db')
-            return client.put(params).promise()
-        } catch(err) {
-            console.log('Failed to update dynamodb', params)
-            return err
-        }
-    }
-
-    async function updateDB(data = [], client) {
-
-        return Promise.all(_.map(data, async function(token){
+    function dbInsertions(data, TABLE_NAME, client) {
+        return _.map(data?.data?.tokens, async function (token) {
             var putParams = {
                 TableName: TABLE_NAME,
                 Item: {
@@ -54,13 +42,13 @@ exports.handler = async (event, context) => {
                     'metadataAvailable': false,
                     'timestamp': moment().valueOf(),
                     'discord': false,
-                    'twitter':false
+                    'twitter': false
                 },
                 ReturnValues: 'ALL_OLD'
-            }
+            };
             //update item to dynamodb
-            return await putItem(client, putParams)
-        }))
+            return client.put(putParams).promise();
+        });
     }
 
     async function main() {
@@ -89,18 +77,20 @@ exports.handler = async (event, context) => {
             console.log('latest block is ', latestBlock)
             const data = await graphQLClient.query(projectSpecificTokens, {project: PROJECT, mintBlock: latestBlock, contractAddress: CONTRACT_ADDRESS}).toPromise()
             console.log('New tokens found: ', data?.data?.tokens.length)
+
             if(data?.data?.tokens.length != 0) {
                 console.log('Attempting to update dynamodb')
-                updateDB(data?.data?.tokens, client)
+                await Promise.all(dbInsertions(data, TABLE_NAME, client))
             }
         } else {
             console.log('Could not find any items from dynamo db database!')
             console.log('Starting to search tokens from block: ', STARTING_BLOCK)
             const data = await graphQLClient.query(projectSpecificTokens, {project: PROJECT, mintBlock: STARTING_BLOCK, contractAddress: CONTRACT_ADDRESS}).toPromise()
             console.log('New tokens found: ', data?.data?.tokens.length)
+
             if(data?.data?.tokens.length != 0) {
                 console.log('Attempting to update dynamodb')
-                updateDB(data?.data?.tokens, client)
+                await Promise.all(dbInsertions(data, TABLE_NAME, client))
             }
         }
     }
