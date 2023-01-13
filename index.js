@@ -34,6 +34,7 @@ exports.handler = async (event, context) => {
 
     async function putItem(client, params) {
         try {
+            console.log('attempting to put item to db')
             return client.put(params).promise()
         } catch(err) {
             console.log('Failed to update dynamodb', params)
