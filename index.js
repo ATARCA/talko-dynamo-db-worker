@@ -6,7 +6,7 @@ const _ = require('lodash')
 const {projectSpecificTokens, getMetadataObject, updateParams, getItem, updateItem} = require('./helpers')
 const moment = require('moment')
 
-exports.handler = async (event, context) => {
+//exports.handler = async (event, context) => {
     const API_URL = process.env.API_URL
     const PROJECT = process.env.PROJECT
     const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS
@@ -59,7 +59,7 @@ exports.handler = async (event, context) => {
                 ReturnValues: 'ALL_OLD'
             }
             //update item to dynamodb
-            return await putItem(client, putParams)
+            return client.put(params).promise()
         }))
     }
 
@@ -91,7 +91,25 @@ exports.handler = async (event, context) => {
             console.log('New tokens found: ', data?.data?.tokens.length)
             if(data?.data?.tokens.length != 0) {
                 console.log('Attempting to update dynamodb')
-                updateDB(data?.data?.tokens, client)
+
+                await Promise.all(_.map(data?.data?.tokens, async function(token){
+                    var putParams = {
+                        TableName: TABLE_NAME,
+                        Item: {
+                            'contractAddress': token.contractAddress,
+                            'tokenId': parseInt(token.tokenId),
+                            'mintBlock': token.mintBlock,
+                            'metadataAvailable': false,
+                            'timestamp': moment().valueOf(),
+                            'discord': false,
+                            'twitter':false
+                        },
+                        ReturnValues: 'ALL_OLD'
+                    }
+                    //update item to dynamodb
+                    return client.put(putParams).promise()
+                }))
+                //await updateDB(data?.data?.tokens, client)
             }
         } else {
             console.log('Could not find any items from dynamo db database!')
@@ -100,10 +118,27 @@ exports.handler = async (event, context) => {
             console.log('New tokens found: ', data?.data?.tokens.length)
             if(data?.data?.tokens.length != 0) {
                 console.log('Attempting to update dynamodb')
-                updateDB(data?.data?.tokens, client)
+                await Promise.all(_.map(data?.data?.tokens, async function(token){
+                    var putParams = {
+                        TableName: TABLE_NAME,
+                        Item: {
+                            'contractAddress': token.contractAddress,
+                            'tokenId': parseInt(token.tokenId),
+                            'mintBlock': token.mintBlock,
+                            'metadataAvailable': false,
+                            'timestamp': moment().valueOf(),
+                            'discord': false,
+                            'twitter':false
+                        },
+                        ReturnValues: 'ALL_OLD'
+                    }
+                    //update item to dynamodb
+                    return client.put(putParams).promise()
+                }))
+                //await updateDB(data?.data?.tokens, client)
             }
         }
     }
 
-    await main()
-}
+    main()
+//}
