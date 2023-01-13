@@ -43,7 +43,8 @@ exports.handler = async (event, context) => {
     }
 
     async function updateDB(data = [], client) {
-        data.forEach(async (token) => {
+
+        return Promise.all(_.map(data, async function(token){
             var putParams = {
                 TableName: TABLE_NAME,
                 Item: {
@@ -58,8 +59,8 @@ exports.handler = async (event, context) => {
                 ReturnValues: 'ALL_OLD'
             }
             //update item to dynamodb
-            const result = await putItem(client, putParams)
-        })
+            return await putItem(client, putParams)
+        }))
     }
 
     async function main() {
