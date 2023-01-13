@@ -63,6 +63,26 @@ exports.handler = async (event, context) => {
         }))
     }
 
+    function dbInsertions(data, TABLE_NAME, client) {
+        return _.map(data?.data?.tokens, async function (token) {
+            var putParams = {
+                TableName: TABLE_NAME,
+                Item: {
+                    'contractAddress': token.contractAddress,
+                    'tokenId': parseInt(token.tokenId),
+                    'mintBlock': token.mintBlock,
+                    'metadataAvailable': false,
+                    'timestamp': moment().valueOf(),
+                    'discord': false,
+                    'twitter': false
+                },
+                ReturnValues: 'ALL_OLD'
+            };
+            //update item to dynamodb
+            return client.put(putParams).promise();
+        });
+    }
+
     async function main() {
 
         const graphQLClient = createClient({
@@ -91,24 +111,8 @@ exports.handler = async (event, context) => {
             console.log('New tokens found: ', data?.data?.tokens.length)
             if(data?.data?.tokens.length != 0) {
                 console.log('Attempting to update dynamodb')
-
-                await Promise.all(_.map(data?.data?.tokens, async function(token){
-                    var putParams = {
-                        TableName: TABLE_NAME,
-                        Item: {
-                            'contractAddress': token.contractAddress,
-                            'tokenId': parseInt(token.tokenId),
-                            'mintBlock': token.mintBlock,
-                            'metadataAvailable': false,
-                            'timestamp': moment().valueOf(),
-                            'discord': false,
-                            'twitter':false
-                        },
-                        ReturnValues: 'ALL_OLD'
-                    }
-                    //update item to dynamodb
-                    return client.put(putParams).promise()
-                }))
+                //refactor to a function
+                await Promise.all(dbInsertions(data, TABLE_NAME, client))
                 //await updateDB(data?.data?.tokens, client)
             }
         } else {
@@ -118,23 +122,7 @@ exports.handler = async (event, context) => {
             console.log('New tokens found: ', data?.data?.tokens.length)
             if(data?.data?.tokens.length != 0) {
                 console.log('Attempting to update dynamodb')
-                await Promise.all(_.map(data?.data?.tokens, async function(token){
-                    var putParams = {
-                        TableName: TABLE_NAME,
-                        Item: {
-                            'contractAddress': token.contractAddress,
-                            'tokenId': parseInt(token.tokenId),
-                            'mintBlock': token.mintBlock,
-                            'metadataAvailable': false,
-                            'timestamp': moment().valueOf(),
-                            'discord': false,
-                            'twitter':false
-                        },
-                        ReturnValues: 'ALL_OLD'
-                    }
-                    //update item to dynamodb
-                    return client.put(putParams).promise()
-                }))
+                await Promise.all(dbInsertions(data, TABLE_NAME, client))
                 //await updateDB(data?.data?.tokens, client)
             }
         }
